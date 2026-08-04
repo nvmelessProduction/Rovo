@@ -76,16 +76,19 @@ workflows:
       - name: Installazione pacchetti
         script: flutter pub get
       - name: Firma (crea certificato e profilo se mancano)
-        # 1) create-certificate genera un NUOVO certificato di distribuzione
-        #    CON la sua chiave privata (il pezzo che mancava a Codemagic).
-        # 2) fetch-signing-files --create crea il provisioning profile per l'app.
+        # 1) Genera una chiave privata (il pezzo che mancava a Codemagic).
+        # 2) Crea il certificato di distribuzione USANDO quella chiave.
+        # 3) Crea/recupera il provisioning profile per l'app, con la stessa chiave.
         script: |
           keychain initialize
-          app-store-connect create-certificate \
+          openssl genrsa -out /tmp/rova_cert_key.pem 2048
+          app-store-connect certificates create \
             --type IOS_DISTRIBUTION \
-            --save
+            --certificate-key=@file:/tmp/rova_cert_key.pem \
+            --save || echo "Certificato non creato (forse esiste già o limite raggiunto), proseguo"
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@file:/tmp/rova_cert_key.pem \
             --create
           keychain add-certificates
           xcode-project use-profiles
