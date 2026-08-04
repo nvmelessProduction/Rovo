@@ -76,10 +76,14 @@ workflows:
       - name: Installazione pacchetti
         script: flutter pub get
       - name: Firma (crea certificato e profilo se mancano)
-        # fetch-signing-files con --create crea il provisioning profile
-        # (e il certificato di distribuzione, se non c'è) per il bundle id.
+        # 1) create-certificate genera un NUOVO certificato di distribuzione
+        #    CON la sua chiave privata (il pezzo che mancava a Codemagic).
+        # 2) fetch-signing-files --create crea il provisioning profile per l'app.
         script: |
           keychain initialize
+          app-store-connect create-certificate \
+            --type IOS_DISTRIBUTION \
+            --save
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
