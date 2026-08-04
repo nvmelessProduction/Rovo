@@ -67,7 +67,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      app_store_connect: RovaAppStoreKey # <- nome che darai alla chiave in Codemagic
+      app_store_connect: CodemagicAppStore # nome della chiave App Store Connect in Codemagic
     environment:
       flutter: stable
       ios_signing:
