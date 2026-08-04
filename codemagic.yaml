@@ -72,7 +72,7 @@ workflows:
       flutter: stable
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.albertoniccoli.rova
+        bundle_identifier: com.albertoniccoliapp.rova
     scripts:
       - name: Installazione pacchetti
         script: flutter pub get
