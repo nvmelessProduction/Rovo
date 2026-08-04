@@ -79,7 +79,12 @@ workflows:
       - name: Configura la firma
         script: xcode-project use-profiles
       - name: Build IPA firmata
-        script: flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+        # --build-number=$BUILD_NUMBER usa il contatore di Codemagic (cresce a
+        # ogni build): evita l'errore "build number already used" su TestFlight.
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
