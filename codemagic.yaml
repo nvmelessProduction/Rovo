@@ -89,4 +89,5 @@ workflows:
       - build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
+        auth: integration # usa la chiave App Store Connect del blocco "integrations"
         submit_to_testflight: true
