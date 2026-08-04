@@ -70,14 +70,21 @@ workflows:
       app_store_connect: CodemagicAppStore # nome della chiave App Store Connect in Codemagic
     environment:
       flutter: stable
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.albertoniccoliapp.rova
+      vars:
+        BUNDLE_ID: "com.albertoniccoliapp.rova"
     scripts:
       - name: Installazione pacchetti
         script: flutter pub get
-      - name: Configura la firma
-        script: xcode-project use-profiles
+      - name: Firma (crea certificato e profilo se mancano)
+        # fetch-signing-files con --create crea il provisioning profile
+        # (e il certificato di distribuzione, se non c'è) per il bundle id.
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA firmata
         # --build-number=$BUILD_NUMBER usa il contatore di Codemagic (cresce a
         # ogni build): evita l'errore "build number already used" su TestFlight.
