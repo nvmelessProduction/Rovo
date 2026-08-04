@@ -74,15 +74,16 @@ La prima volta Xcode chiede un **Apple ID** per firmare l’app (basta un accoun
 Apri `ios/Runner.xcworkspace` in Xcode, in *Signing & Capabilities* scegli il tuo team, poi riprova
 `flutter run`.
 
-### D) Sul tuo iPhone **senza un Mac** — build cloud (Codemagic)
-Se non hai un Mac, puoi far compilare l’app iOS in cloud:
-1. Vai su <https://codemagic.io> e collega questo repository GitHub.
-2. Scegli il progetto Flutter → build **iOS**.
-3. Per installarla sul telefono servirà comunque un account **Apple Developer** (per la firma).
-   All’inizio si può testare più facilmente la **versione Android** (gratuita, nessuna firma Apple).
+### D) Sul tuo iPhone **senza computer** — build cloud (Codemagic) 👈 il tuo caso
+Se lavori solo dal telefono, Codemagic compila l’app nel cloud (anche iOS, senza un Mac).
+Nel repo c’è già il file `codemagic.yaml` con tre percorsi pronti (anteprima gratis, Android,
+iPhone/TestFlight).
 
-> Consiglio per iniziare a “toccare con mano” senza attese: usa **A) Chrome** o **B) Android**.
-> L’iPhone lo affrontiamo quando vuoi, con calma.
+📖 **Guida passo-passo pensata per il telefono:** [`docs/CODEMAGIC.md`](docs/CODEMAGIC.md)
+
+> In breve: per **vedere subito** l’app è gratis (anteprima nel browser). Per **installarla davvero
+> sull’iPhone** Apple richiede un account **Apple Developer (99 $/anno)** — è un limite di Apple,
+> non c’è modo gratuito di mettere un’app sul proprio iPhone senza un Mac.
 
 ---
 

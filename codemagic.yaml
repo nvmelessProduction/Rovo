@@ -1,0 +1,87 @@
+# Configurazione Codemagic per Rova.
+#
+# Codemagic compila l'app nel cloud (anche iOS, senza bisogno di un Mac tuo).
+# Qui ci sono TRE percorsi ("workflow"). Nella schermata di Codemagic scegli
+# quello che ti serve e premi "Start new build".
+#
+#  1) ios-anteprima  -> GRATIS, nessun account Apple. Crea una versione
+#                       "simulatore" da provare nel browser (es. Appetize.io).
+#  2) android-apk    -> GRATIS, nessuna firma. Crea un file .apk installabile
+#                       su un telefono Android (non iPhone).
+#  3) ios-testflight -> Per installare sul TUO iPhone via TestFlight.
+#                       Richiede un account Apple Developer (99 $/anno) e le
+#                       credenziali configurate in Codemagic (vedi docs).
+
+workflows:
+  # -------------------------------------------------------------------------
+  # 1) ANTEPRIMA iOS — gratis, nessun account Apple.
+  #    Costruisce l'app per il "simulatore" iOS. Il file .zip risultante si
+  #    può caricare su https://appetize.io per provarla nel browser del telefono.
+  # -------------------------------------------------------------------------
+  ios-anteprima:
+    name: iOS Anteprima (gratis, senza account Apple)
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      flutter: stable
+    scripts:
+      - name: Installazione pacchetti
+        script: flutter pub get
+      - name: Build per simulatore iOS
+        script: flutter build ios --simulator --debug
+      - name: Comprimi l'app
+        script: |
+          cd build/ios/iphonesimulator
+          zip -r Rova-simulator.app.zip Runner.app
+    artifacts:
+      - build/ios/iphonesimulator/Rova-simulator.app.zip
+
+  # -------------------------------------------------------------------------
+  # 2) ANDROID APK — gratis, nessuna firma Apple.
+  #    Utile se hai (o puoi farti prestare) un telefono Android per provare.
+  # -------------------------------------------------------------------------
+  android-apk:
+    name: Android APK (gratis)
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      flutter: stable
+    scripts:
+      - name: Installazione pacchetti
+        script: flutter pub get
+      - name: Build APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+
+  # -------------------------------------------------------------------------
+  # 3) iOS TESTFLIGHT — per installare sul TUO iPhone.
+  #    RICHIEDE un account Apple Developer (99 $/anno). Prima di usarlo devi
+  #    configurare in Codemagic:
+  #      - l'integrazione "App Store Connect" (una chiave API di Apple),
+  #      - la firma automatica (Automatic code signing).
+  #    Guida passo-passo: vedi docs/CODEMAGIC.md
+  # -------------------------------------------------------------------------
+  ios-testflight:
+    name: iOS TestFlight (richiede Apple Developer 99$/anno)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: RovaAppStoreKey # <- nome che darai alla chiave in Codemagic
+    environment:
+      flutter: stable
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.rova.rova
+    scripts:
+      - name: Installazione pacchetti
+        script: flutter pub get
+      - name: Configura la firma
+        script: xcode-project use-profiles
+      - name: Build IPA firmata
+        script: flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        submit_to_testflight: true
