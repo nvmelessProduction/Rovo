@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/itinerary_screen.dart';
 import 'services/tts_service.dart';
 import 'state/app_state.dart';
+import 'state/navigation_session.dart';
 import 'state/navigation_state.dart';
 import 'theme/app_theme.dart';
 
@@ -27,6 +28,13 @@ class RovaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TtsService()),
         // Navigazione normale: posizione, destinazione e percorso.
         ChangeNotifierProvider(create: (_) => NavigationState()),
+        // Guida attiva turn-by-turn: usa la voce del TtsService.
+        ChangeNotifierProxyProvider<TtsService, NavigationSession>(
+          create: (context) =>
+              NavigationSession(tts: context.read<TtsService>()),
+          update: (_, tts, precedente) =>
+              precedente ?? NavigationSession(tts: tts),
+        ),
       ],
       child: MaterialApp(
         title: 'Rova',

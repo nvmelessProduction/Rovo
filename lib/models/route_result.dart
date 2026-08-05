@@ -1,8 +1,11 @@
 import 'package:latlong2/latlong.dart';
 
-/// Il risultato del calcolo di un percorso: geometria + distanza + durata.
+import 'route_step.dart';
+
+/// Il risultato del calcolo di un percorso: geometria, manovre, distanza, durata.
 class RouteResult {
   final List<LatLng> polyline;
+  final List<RouteStep> steps;
   final double metri;
   final double secondi;
 
@@ -10,6 +13,7 @@ class RouteResult {
     required this.polyline,
     required this.metri,
     required this.secondi,
+    this.steps = const [],
   });
 
   double get km => metri / 1000;
@@ -22,7 +26,12 @@ class RouteResult {
   }
 
   /// Durata formattata, es. "1h 35min".
-  String get durataLabel {
+  String get durataLabel => formattaDurata(minuti);
+
+  /// Orario di arrivo stimato a partire da adesso, es. "14:35".
+  String get arrivoLabel => formattaOrarioArrivo(minuti);
+
+  static String formattaDurata(int minuti) {
     final h = minuti ~/ 60;
     final m = minuti % 60;
     if (h == 0) return '${m}min';
@@ -30,9 +39,8 @@ class RouteResult {
     return '${h}h ${m}min';
   }
 
-  /// Orario di arrivo stimato a partire da adesso, es. "14:35".
-  String get arrivoLabel {
-    final arrivo = DateTime.now().add(Duration(minutes: minuti));
+  static String formattaOrarioArrivo(int minutiMancanti) {
+    final arrivo = DateTime.now().add(Duration(minutes: minutiMancanti));
     final hh = arrivo.hour.toString().padLeft(2, '0');
     final mm = arrivo.minute.toString().padLeft(2, '0');
     return '$hh:$mm';

@@ -10,12 +10,14 @@ class RoutePanel extends StatelessWidget {
   final Place destinazione;
   final RouteResult percorso;
   final VoidCallback onAnnulla;
+  final VoidCallback onAvvia;
 
   const RoutePanel({
     super.key,
     required this.destinazione,
     required this.percorso,
     required this.onAnnulla,
+    required this.onAvvia,
   });
 
   @override
@@ -62,6 +64,15 @@ class RoutePanel extends StatelessWidget {
                 const SizedBox(width: 20),
                 _Info(valore: percorso.arrivoLabel, etichetta: 'arrivo'),
               ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onAvvia,
+                icon: const Icon(Icons.navigation),
+                label: const Text('Avvia navigazione'),
+              ),
             ),
           ],
         ),

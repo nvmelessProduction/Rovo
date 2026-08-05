@@ -14,11 +14,14 @@ Questo repository contiene la **Milestone 1**: le fondamenta funzionanti dell’
 
 ## Cosa fa oggi l'app
 
-**Navigazione (M1.5 — nuovo):**
-- 🔍 **Ricerca destinazione funzionante**: scrivi un indirizzo o un luogo e l'app lo trova
+**Navigazione:**
+- 🔍 **Ricerca destinazione**: scrivi un indirizzo o un luogo e l'app lo trova
   (OpenStreetMap/Nominatim).
 - 🛣️ **Percorso reale su strada** calcolato da dove sei fino alla destinazione (OSRM), disegnato
   sulla mappa, con **distanza, durata e orario di arrivo stimato**.
+- 🧭 **Navigazione turn-by-turn con voce italiana**: manovra per manovra ("tra 300 metri, gira a
+  destra su Via Roma"), mappa che ti segue, tempo/distanza/arrivo aggiornati mentre guidi,
+  **ricalcolo automatico** se sbagli strada e pulsante per silenziare la voce.
 - 📍 **La tua posizione GPS** sulla mappa, con pulsante "centra su di me".
 
 **Esperienza turistica (M1):**

@@ -11,10 +11,13 @@ import '../data/seed.dart';
 import '../models/fuel_station.dart';
 import '../models/place.dart';
 import '../models/stop.dart';
+import '../services/location_service.dart';
 import '../state/app_state.dart';
+import '../state/navigation_session.dart';
 import '../state/navigation_state.dart';
 import '../theme/app_theme.dart';
 import 'guide_screen.dart';
+import 'navigation_screen.dart';
 import 'search_screen.dart';
 
 /// Schermata principale: mappa OpenStreetMap a tutto schermo.
@@ -104,6 +107,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+  }
+
+  /// Avvia la guida turn-by-turn a schermo intero.
+  Future<void> _avviaNavigazione() async {
+    final nav = context.read<NavigationState>();
+    final sessione = context.read<NavigationSession>();
+    final destinazione = nav.destinazione;
+    final percorso = nav.percorso;
+    if (destinazione == null || percorso == null) return;
+
+    // Senza permesso GPS la guida non può seguire l'utente.
+    final ok = await LocationService().assicuraPermesso();
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Per navigare serve la posizione. Attiva il GPS e concedi il permesso.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    await sessione.avvia(destinazione, percorso);
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NavigationScreen()),
+    );
   }
 
   void _centraSuDiMe() async {
@@ -274,6 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 destinazione: nav.destinazione!,
                 percorso: nav.percorso!,
                 onAnnulla: context.read<NavigationState>().annulla,
+                onAvvia: _avviaNavigazione,
               ),
             ),
 
