@@ -6,25 +6,56 @@ import 'package:provider/provider.dart';
 import '../components/fuel_marker.dart';
 import '../components/itinerary_sheet.dart';
 import '../components/numbered_marker.dart';
+import '../components/route_panel.dart';
 import '../data/seed.dart';
 import '../models/fuel_station.dart';
+import '../models/place.dart';
 import '../models/stop.dart';
 import '../state/app_state.dart';
+import '../state/navigation_state.dart';
 import '../theme/app_theme.dart';
 import 'guide_screen.dart';
+import 'search_screen.dart';
 
 /// Schermata principale: mappa OpenStreetMap a tutto schermo.
 ///
-/// - Modalità normale: mappa + barra di ricerca (placeholder) + invito a
-///   entrare nella modalità Turismo. Nessun racconto audio.
-/// - Modalità Turismo: percorso, tappe numerate e bottom sheet con la lista.
-class HomeScreen extends StatelessWidget {
+/// - Modalità normale: ricerca destinazione, percorso su strada, posizione GPS.
+///   Nessun racconto audio.
+/// - Modalità Turismo: itinerario, tappe numerate e bottom sheet con la lista.
+class HomeScreen extends StatefulWidget {
   /// Passa alla scheda "Turismo" (gestita dal RootScaffold).
   final VoidCallback onOpenTourism;
 
   const HomeScreen({super.key, required this.onOpenTourism});
 
-  static const LatLng _center = LatLng(43.545, 11.300);
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  static const LatLng _centroIniziale = LatLng(43.545, 11.300);
+
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Chiede la posizione all'avvio (il permesso viene chiesto una volta sola).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final nav = context.read<NavigationState>();
+      await nav.aggiornaPosizione();
+      final pos = nav.posizioneUtente;
+      if (pos != null && mounted && !nav.haPercorso) {
+        _mapController.move(pos, 14);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
 
   void _openGuide(BuildContext context, Stop stop) {
     context.read<AppState>().selectStopById(stop.id);
@@ -45,9 +76,58 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  /// Apre la ricerca; se l'utente sceglie un luogo, calcola il percorso
+  /// e inquadra la mappa sull'intero tragitto.
+  Future<void> _cercaDestinazione() async {
+    final nav = context.read<NavigationState>();
+    final scelto = await Navigator.of(context).push<Place>(
+      MaterialPageRoute(builder: (_) => const SearchScreen()),
+    );
+    if (scelto == null || !mounted) return;
+
+    await nav.vaiA(scelto);
+    if (!mounted) return;
+
+    final percorso = nav.percorso;
+    if (percorso != null && percorso.polyline.isNotEmpty) {
+      _mapController.fitCamera(
+        CameraFit.coordinates(
+          coordinates: percorso.polyline,
+          padding: const EdgeInsets.fromLTRB(40, 120, 40, 200),
+        ),
+      );
+    } else if (nav.errore != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.chiantiRed,
+          content: Text(nav.errore!),
+        ),
+      );
+    }
+  }
+
+  void _centraSuDiMe() async {
+    final nav = context.read<NavigationState>();
+    await nav.aggiornaPosizione();
+    final pos = nav.posizioneUtente;
+    if (!mounted) return;
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Posizione non disponibile. Attiva il GPS e concedi il permesso.',
+          ),
+        ),
+      );
+      return;
+    }
+    _mapController.move(pos, 15);
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
+    final nav = context.watch<NavigationState>();
     final itinerary = app.itinerary;
 
     // Il distributore più economico (benzina) è evidenziato anche sulla mappa.
@@ -83,12 +163,34 @@ class HomeScreen extends StatelessWidget {
           }).toList()
         : <Marker>[];
 
+    final navMarkers = <Marker>[
+      if (nav.posizioneUtente != null)
+        Marker(
+          point: nav.posizioneUtente!,
+          width: 24,
+          height: 24,
+          child: const _PallinoPosizione(),
+        ),
+      if (nav.destinazione != null)
+        Marker(
+          point: nav.destinazione!.posizione,
+          width: 36,
+          height: 36,
+          child: const Icon(
+            Icons.location_on,
+            color: AppColors.chiantiRed,
+            size: 36,
+          ),
+        ),
+    ];
+
     return Scaffold(
       body: Stack(
         children: [
           FlutterMap(
+            mapController: _mapController,
             options: const MapOptions(
-              initialCenter: _center,
+              initialCenter: _centroIniziale,
               initialZoom: 9.2,
               minZoom: 4,
               maxZoom: 18,
@@ -108,11 +210,21 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-              MarkerLayer(markers: [...fuelMarkers, ...stopMarkers]),
+              if (nav.percorso != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: nav.percorso!.polyline,
+                      strokeWidth: 6,
+                      color: AppColors.fuel,
+                    ),
+                  ],
+                ),
+              MarkerLayer(markers: [...fuelMarkers, ...stopMarkers, ...navMarkers]),
             ],
           ),
 
-          // Barra di ricerca (placeholder, non ancora funzionale in M1).
+          // Barra di ricerca (in modalità normale è attiva).
           Positioned(
             top: 0,
             left: 0,
@@ -122,19 +234,56 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 child: _SearchBar(
                   tourism: app.isTourism,
+                  testo: nav.destinazione?.nome,
+                  onTap: app.isTourism ? null : _cercaDestinazione,
                   onExitTourism: context.read<AppState>().exitTourism,
                 ),
               ),
             ),
           ),
 
-          // Modalità normale: invito a entrare nel Turismo.
+          // Pulsante "centra sulla mia posizione".
           if (!app.isTourism)
+            Positioned(
+              right: 16,
+              bottom: nav.haPercorso ? 170 : 108,
+              child: FloatingActionButton.small(
+                heroTag: 'gps',
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.chiantiRed,
+                onPressed: _centraSuDiMe,
+                child: const Icon(Icons.my_location),
+              ),
+            ),
+
+          if (nav.caricando)
+            const Positioned(
+              top: 80,
+              left: 0,
+              right: 0,
+              child: Center(child: _Caricamento()),
+            ),
+
+          // Riepilogo del percorso calcolato.
+          if (!app.isTourism && nav.haPercorso)
             Positioned(
               left: 16,
               right: 16,
               bottom: 24,
-              child: _TourismCta(onOpenTourism: onOpenTourism),
+              child: RoutePanel(
+                destinazione: nav.destinazione!,
+                percorso: nav.percorso!,
+                onAnnulla: context.read<NavigationState>().annulla,
+              ),
+            ),
+
+          // Modalità normale senza percorso: invito al Turismo.
+          if (!app.isTourism && !nav.haPercorso && !nav.caricando)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 24,
+              child: _TourismCta(onOpenTourism: widget.onOpenTourism),
             ),
 
           // Modalità Turismo: bottom sheet trascinabile con la lista tappe.
@@ -167,45 +316,110 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  final bool tourism;
-  final VoidCallback onExitTourism;
-
-  const _SearchBar({required this.tourism, required this.onExitTourism});
+class _PallinoPosizione extends StatelessWidget {
+  const _PallinoPosizione();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.fuel,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
         boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2)),
+          BoxShadow(color: Colors.black38, blurRadius: 4),
         ],
       ),
-      child: Row(
+    );
+  }
+}
+
+class _Caricamento extends StatelessWidget {
+  const _Caricamento();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            tourism ? Icons.explore : Icons.search,
-            color: AppColors.muted,
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              tourism ? 'Modalità Turismo · La Via del Chianti' : 'Dove vuoi andare?',
-              style: const TextStyle(color: AppColors.muted, fontSize: 15),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (tourism)
-            TextButton(
-              onPressed: onExitTourism,
-              style: TextButton.styleFrom(foregroundColor: AppColors.chiantiRed),
-              child: const Text('Esci'),
-            ),
+          SizedBox(width: 10),
+          Text('Calcolo il percorso…'),
         ],
+      ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  final bool tourism;
+  final String? testo;
+  final VoidCallback? onTap;
+  final VoidCallback onExitTourism;
+
+  const _SearchBar({
+    required this.tourism,
+    required this.testo,
+    required this.onTap,
+    required this.onExitTourism,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final etichetta = tourism
+        ? 'Modalità Turismo · La Via del Chianti'
+        : (testo ?? 'Dove vuoi andare?');
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 4,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              Icon(
+                tourism ? Icons.explore : Icons.search,
+                color: AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  etichetta,
+                  style: TextStyle(
+                    color: testo == null ? AppColors.muted : AppColors.charcoal,
+                    fontSize: 15,
+                    fontWeight:
+                        testo == null ? FontWeight.normal : FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (tourism)
+                TextButton(
+                  onPressed: onExitTourism,
+                  style:
+                      TextButton.styleFrom(foregroundColor: AppColors.chiantiRed),
+                  child: const Text('Esci'),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

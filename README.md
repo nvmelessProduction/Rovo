@@ -12,8 +12,16 @@ Questo repository contiene la **Milestone 1**: le fondamenta funzionanti dell’
 
 ---
 
-## Cosa fa la Milestone 1
+## Cosa fa oggi l'app
 
+**Navigazione (M1.5 — nuovo):**
+- 🔍 **Ricerca destinazione funzionante**: scrivi un indirizzo o un luogo e l'app lo trova
+  (OpenStreetMap/Nominatim).
+- 🛣️ **Percorso reale su strada** calcolato da dove sei fino alla destinazione (OSRM), disegnato
+  sulla mappa, con **distanza, durata e orario di arrivo stimato**.
+- 📍 **La tua posizione GPS** sulla mappa, con pulsante "centra su di me".
+
+**Esperienza turistica (M1):**
 - 🗺️ **Mappa a tutto schermo** (OpenStreetMap) centrata sulla Toscana.
 - 🍷 **Modalità Turismo** con l’itinerario **“La Via del Chianti” (Firenze → Siena)**: percorso
   disegnato sulla mappa, **6 tappe numerate** e **marker dei distributori**, tutti toccabili.

@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/itinerary_screen.dart';
 import 'services/tts_service.dart';
 import 'state/app_state.dart';
+import 'state/navigation_state.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -24,6 +25,8 @@ class RovaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppState(viaDelChianti)),
         // Guida audio (TTS italiano), condivisa tra le schermate.
         ChangeNotifierProvider(create: (_) => TtsService()),
+        // Navigazione normale: posizione, destinazione e percorso.
+        ChangeNotifierProvider(create: (_) => NavigationState()),
       ],
       child: MaterialApp(
         title: 'Rova',
