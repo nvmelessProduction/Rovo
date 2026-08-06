@@ -7,7 +7,11 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Rova usa la tua posizione per mostrarti sulla mappa e calcolare il percorso verso la destinazione.</string>
+	<string>Rova usa la tua posizione per mostrarti sulla mappa, calcolare il percorso verso la destinazione e guidarti passo dopo passo durante la navigazione.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Rova usa la tua posizione per mostrarti sulla mappa e guidarti passo dopo passo mentre usi l'app.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Rova usa la tua posizione per mostrarti sulla mappa e guidarti passo dopo passo mentre usi l'app.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
